@@ -1,0 +1,138 @@
+# 日历锁屏插件（Calendar Lockscreen）for KOReader
+
+墨水屏息屏（锁屏）时显示：**公历日期 + 星期 + 农历（含干支年与节气）**，完全离线、不联网，
+自适应任意尺寸 e-ink 屏幕（字号按屏幕高度比例缩放）。锁屏底部另带一句**每日金句**（同样离线、本地语料）。
+
+## 显示内容
+
+```
+ ─────────────────────────────────────         ← 细线
+2026.9                                      ← 年份.月份（简写，无"年月"字，30px 加粗）
+12                                         ← 超大号数（视觉主角，120px 加粗）
+星期六                                        ← 星期（30px；星期六加粗）
+─────────────────────────────────────         ← 细线
+丙午年 八月初二 · 秋分                          ← 农历（15px 加粗）：干支年 + 月日；若当天是节气则附「· 节气名」
+（屏幕底部）生活就像一盒巧克力……                ← 每日金句（小字，居中；著名台词只显示台词本身，不显示出处）
+```
+
+## 排版规格（与定稿样式稿 1:1 对齐）
+
+样式稿 `demo_calendar_lockscreen.html` 的屏幕区是 310×420 CSS px，插件把稿子里每个数值
+按 `实际像素 = 稿子像素 × (屏幕高 / 420)` 等比放大，所以任何尺寸的墨水屏都是同一套视觉比例。
+字号还会先除以 KOReader 的 DPI 缩放系数（`Font:getFace()` 会把字号再乘回去）——
+不做这一步，同一份代码在不同 DPI 的机器上大小会不一样（这正是之前"字体与样式稿不一致"的原因）。
+
+- 字重：默认 `bold=false`，即以所选字体**自身**的字重渲染 —— 已经选中很粗的字体（Heavy/Black）时不会
+  再叠一层合成加粗（叠了会糊）。只有你手动打开「额外加粗」时才叠加。
+
+- 字体：**不在代码里写死任何字体名**。插件会扫描 KOReader 能看到的全部字体，
+  自动挑出**笔画最粗的中文字体**（Heavy/Black/ExtraBold… 优先，纯英文字体不会被选中）。
+  想换字体**直接点菜单**，不用改代码 —— 见下面「以后想换字体怎么办」。
+- 版面：内容占屏幕上约 74%，顶部对齐（与样式稿一致），其余空白留在下方。
+  如果某些极端比例屏幕放不下，会自动等比缩小到放得下为止。
+- 节气：仅当当天恰为节气日时，节气名附在农历行末尾。
+- 农历/节气/星期全部由纯 Lua 算法离线计算（移植自 jjonline/calendar.js，历表 1900–2100）。
+
+## 以后想换字体怎么办
+
+**不用改代码，点菜单就行。** 菜单路径：`菜单 → 日历锁屏 → 字体`。
+
+| 想做什么 | 怎么做 |
+| --- | --- |
+| 让它自己挑最好看的 | 选 **「自动（挑最粗的中文字体）」**（默认） |
+| 换成某个具体字体 | 在「字体」列表里点一下，选中即生效（有 ✓ 标记） |
+| 列表里看中哪行就是哪行 | 列表内每行**用该字体本身渲染**，等于直接预览 |
+| 刚放进设备的字体没出现 | 退回上一级菜单再进一次「字体」即可（进入时会重新扫描字体目录，通常不用重启 KOReader） |
+| 字体偏细、又不想下载字体文件 | 打开 **「额外加粗」**（由 KOReader 合成加粗；选了本身很粗的字体就不需要） |
+| 找不到的字体 | 会折叠在 **「显示全部字体（N）」** 里（非中文命名的中文字体也在那儿） |
+
+当前生效的字体就写在菜单第二行 **「当前字体：xxx（自动）」**，不用猜。
+
+字体文件放哪（放任意一处即可，KOReader 都会扫描）：
+
+- Android：`/sdcard/koreader/fonts/`（和 `plugins/` 同级）、`/sdcard/fonts/`
+- Kobo / Kindle / 通用：KOReader 目录下的 `fonts/`（和 `plugins/` 同级）
+
+> 说明：`koreader.log` 里会记录最终选中的字体，形如
+> `calendar_lockscreen: using font ./fonts/SourceHanSansSC-Heavy.otf (auto)`，
+> 排查时可直接搜 `calendar_lockscreen`。
+
+## 安装
+
+1. 把整个 `calendar_lockscreen.koplugin/` 文件夹（内部含 7 个 `.lua` 文件：`main.lua`、`_meta.lua`、`calendarscreen.lua`、`calfont.lua`、`cal_lunar.lua`、`calquote.lua`、`calcorpus.lua`，以及 3 个语料文件：`poems.txt`、`quotes.txt`、`lines.txt`）复制到 KOReader 的插件目录。常见位置（放任意一个即可，KOReader 会扫描）：
+   - **Kobo**：`/mnt/onboard/.adds/koreader/plugins/`
+   - **Kindle**：`/mnt/us/koreader/plugins/`（KOReader 装在 `/mnt/us/koreader` 时）
+   - **Android（KOReader App）**：`/sdcard/koreader/plugins/`（数据目录）或 App 私有目录 `Android/data/org.koreader.launcher/files/koreader/plugins/`
+   - 通用：KOReader 启动脚本所在目录下的 `plugins/`
+   > ⚠️ 必须是名为 `xxx.koplugin` 的**文件夹**，里面直接放 7 个 `.lua` 文件 + 3 个 `.txt` 语料文件。常见错误：①解压后变成 `calendar_lockscreen/`（少了 `.koplugin` 后缀）；②变成 `calendar_lockscreen.koplugin/calendar_lockscreen.koplugin/...`（多套一层父目录）。这两种 KOReader 都不识别。
+
+2. **完全退出并重启 KOReader**（回主界面≠重启，要真的杀掉进程再打开；插件只在启动时加载）。
+
+3. 进入菜单找插件：
+   - 主界面点右上角「菜单 / ≡」，在列表中找到 **「日历锁屏」**（通常在「插件」分组下）。
+   - 阅读界面同理：阅读时点头像 / 菜单 → 找到「日历锁屏」。
+
+## 如果菜单里找不到（排查）
+
+按以下顺序核对：
+
+1. **目录形态**：设备上确认是 `calendar_lockscreen.koplugin/` 文件夹，内部直接有 `main.lua / _meta.lua / calendarscreen.lua / calfont.lua / cal_lunar.lua / calquote.lua / calcorpus.lua` 七个 `.lua` 文件，以及 `poems.txt / quotes.txt / lines.txt` 三个语料文件（无 `.koplugin` 后缀缺失、无多层嵌套）。
+2. **是否真重启**：回主界面不等于重启，必须彻底退出 KOReader 再打开。
+3. **看 KOReader 日志**：启动后查看 `koreader.log`（在 KOReader 安装/数据目录），搜索 `calendar_lockscreen`。
+   - 出现 `Could not load plugin` 或 lua 报错 → 插件代码有问题，把报错贴出。
+   - 完全搜不到 `calendar_lockscreen` → 插件目录没被扫描到（路径放错）。
+4. 本插件已在 `main.lua` 的 `init()` 中调用 `self.ui.menu:registerToMainMenu(self)` 注册菜单；若仍不显示，几乎必然是上述 1/2/3 的路径或重启问题，而非代码问题。
+
+## 使用
+
+- 开启「启用日历锁屏」后，正常合盖/息屏即显示本日历锁屏。
+- 唤醒：轻触屏幕或按任意键（与原屏保一致）。
+- 菜单项：`启用日历锁屏` / `当前字体：xxx`（只读提示）/ `字体`（选择器）/ `额外加粗` /
+  `预览锁屏样式` / `金句类型` / `换一条金句`。菜单会自动归位到「工具」标签页，不会带「新：」前缀。
+
+## 每日金句（锁屏底部，本地语料库）
+
+金句取自插件内置的、**人工核实过的真实语料库**（`poems.txt` 诗词、`quotes.txt` 名言警句、
+`lines.txt` 著名台词），**完全本地、零网络、零 Key、断网可用**
+语料库当前规模：诗词 500 条、名言警句 500 条、著名台词 500 条，均可自行增删（见下）。
+
+**金句类型**：菜单 → `金句类型`，可选 `诗词` / `名言警句` / `著名台词` / `随机`（默认）。
+切换类型后，当天的金句立即换成对应类型（同样的日期 + 类型永远显示同一句）。
+
+**换一条金句**：菜单 → `换一条金句`，从语料库里换一句今天的内容（无需联网）；
+如果锁屏正在预览中，会实时重绘显示新句。
+
+## 息屏时自动全刷（消除残影）
+
+**内置功能，始终开启（无开关）。** 息屏时先把整屏刷白一次（一次全刷/闪屏），再画出日历 —— 这样上一页的文字不会
+以浅灰残影的形式透在日历底下。
+
+为什么需要插件自己做这件事：KOReader 本身对**图片类**屏保就有这道"先刷白再显示"的保护
+（`screensaver.lua` 里 *"flash the screen to white first, to eliminate ghosting"*），但那个分支
+只对图片模式生效；本插件为了注入日历，强制使用 `message` 模式，恰好是**唯一没有这道保护的屏保模式**，
+所以残影必须由插件自己清。
+
+- 想先看效果：用 `预览锁屏样式` —— 它走的是同一条链路，会先闪一下白再显示日历（与真实息屏一致）。
+- 如果残影特别顽固（老屏/低温）：把 KOReader 自带的 `screensaver_extra_flash_count` 设为 2~3
+  （KOReader 自己的防残影多次闪黑机制），可与本插件的刷白叠加使用。
+
+## 文件说明
+
+- `main.lua`：插件主体。钩住 KOReader 屏保入口 `Screensaver:show` / `setup` 与
+  `ScreenSaverWidget:init`：启用时把屏保内容替换为日历、强制屏保模式、并在**上屏前刷白整屏**
+  以消除残影（选择 `ScreenSaverWidget:init` 作为钩子点，是因为它恰好运行在
+  `Screensaver:show()` 切完竖屏之后、`UIManager:show()` 画日历之前）；并注册菜单、字体选择器与预览。
+- `calendarscreen.lua`：锁屏画面 widget，按屏幕比例自适应字号，含状态栏 / 年月 / 号数 / 星期 / 农历 / 细线，
+  以及底部的每日金句（所有类型均单行截断显示）。`refreshQuote()` 用于「换一条」时即时重绘可见锁屏。
+- `calfont.lua`：字体发现与选择。扫描 KOReader 字体目录、按字重/中文覆盖度排名、
+  读写"用户选定字体"设置、逐级回退到自带字体。
+- `cal_lunar.lua`：农历、干支、节气算法（纯 Lua，离线，1900–2100）。
+- `calcorpus.lua`：本地语料库加载器。用 `debug.getinfo` 定位自身目录，读取
+  `poems.txt` / `quotes.txt` / `lines.txt`；按 djb2 哈希做「日期确定性」选句
+  （同日期永远选同一句）；`lines.txt` 解析为「台词 + 出处」结构（出处保留在数据中但不显示在锁屏）；
+  文件缺失/为空时回退内置保底。
+- `calquote.lua`：每日金句逻辑。从 `calcorpus` 本地选句（不再联网、不用 AI），按
+  「日期 + 类型」缓存，`换一条金句` 通过偏移量走到语料库下一句并实时重绘可见锁屏；
+  自动剥离句子首尾引号。
+- `poems.txt` / `quotes.txt` / `lines.txt`：用户可编辑的语料文件（格式见上「每日金句」）。
+- `_meta.lua`：插件元信息。

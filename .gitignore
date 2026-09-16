@@ -1,0 +1,12 @@
+# 系统 / 编辑器垃圾文件
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*~
+.idea/
+.vscode/
+
+# WorkBuddy 项目元数据（不属于插件本体，不要发布）
+.workbuddy/
