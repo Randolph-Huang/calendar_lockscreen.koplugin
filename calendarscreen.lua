@@ -201,20 +201,27 @@ function CalendarScreen:init()
         text_row(lunar_text, 15, 1.2)
 
         -- Daily quote, pinned to the bottom edge:  [calendar rows] [flex]
-        -- [quote rows] [bottom margin].  At most TWO lines: the text is
-        -- wrapped by hand (measuring prefixes), and an overflowing second
-        -- line is cut with an ellipsis -- behaviour does not depend on
-        -- TextWidget's internal max_width handling.
+        -- [quote rows] [bottom margin].  Layout rules:
+        --   * the quote font size is user-selectable via calquote.quoteSize()
+        --     (default 12, range 6-14) -- it does NOT affect the calendar;
+        --   * a single-line type (诗词/名言警句/著名台词/随机) is wrapped by
+        --     hand into AT MOST TWO lines; an overflowing second line is cut
+        --     with an ellipsis -- behaviour does not depend on TextWidget's
+        --     internal max_width handling;
+        --   * the 歌词 type ships its text already split on "\n" (foreign above,
+        --     Chinese below) and each line is clamped to the screen width on
+        --     its own.
         local quote_row_h = 0
         local quote_widgets = nil
         if quote_text and quote_text ~= "" then
             local margin_w = screen_w - 2 * s(24)
+            local qsize = calquote.quoteSize()
             local quote_max_w_before = max_text_w
             local function fits(str)
-                local tw = make_text(str, 12, 1.4, quote_fg)
+                local tw = make_text(str, qsize, 1.4, quote_fg)
                 return tw:getSize().w <= margin_w, tw
             end
-            -- Longest UTF-8 prefix that fits on one line.
+            -- Longest UTF-8 prefix that fits on ONE line.
             local function maxPrefix(str)
                 local ok, tw = fits(str)
                 if ok then return str, tw end
@@ -231,7 +238,7 @@ function CalendarScreen:init()
                 end
                 return "", nil
             end
-            -- Shortened with a trailing ellipsis so it fits one line.
+            -- Shortened with a trailing ellipsis so it fits ONE line.
             local function fitEllipsized(str)
                 local ok, tw = fits(str)
                 if ok then return str, tw end
@@ -249,21 +256,44 @@ function CalendarScreen:init()
                 return nil, nil
             end
 
-            -- Layout: the daily quote is a SINGLE clamped line, centred, cut
-            -- with an ellipsis if it overflows the screen width.  (The
-            -- 著名台词 type shows ONLY the line itself; its source/出处 is kept
-            -- in lines.txt but is intentionally NOT displayed.)
-            quote_text = quote_text:gsub("[\r\n]", "")
-            local _, tw1 = fitEllipsized(quote_text)
-            if tw1 then
-                quote_row_h = tw1.forced_height
-                quote_widgets = { tw1 }
+            -- Split into logical lines on "\n" (kept for the 歌词 two-line
+            -- layout).  Strip a stray CR; enforce the two-line cap.
+            local lines = {}
+            for seg in (quote_text .. "\n"):gmatch("(.-)\n") do
+                lines[#lines + 1] = seg:gsub("[\r]", "")
+            end
+            if #lines > 2 then lines = { lines[1], lines[2] } end
+
+            local widgets = {}
+            if #lines == 2 then
+                -- 歌词 two-line layout: each line clamped on its own.
+                local _, tw1 = fitEllipsized(lines[1])
+                if tw1 then widgets[#widgets + 1] = tw1 end
+                local _, tw2 = fitEllipsized(lines[2])
+                if tw2 then widgets[#widgets + 1] = tw2 end
             else
-                -- Even one glyph + ellipsis overflows: hard-cut prefix.
-                local l1, tw2 = maxPrefix(quote_text)
-                if tw2 then
-                    quote_row_h = tw2.forced_height
-                    quote_widgets = { tw2 }
+                -- Single-line type: wrap into at most two lines; the overflowing
+                -- second line is cut with an ellipsis.
+                local text = lines[1] or ""
+                local fill1, tw1 = maxPrefix(text)
+                if tw1 then
+                    widgets[#widgets + 1] = tw1
+                    if #fill1 < #text then
+                        local rest = text:sub(#fill1 + 1)
+                        local _, tw2 = fitEllipsized(rest)
+                        if tw2 then widgets[#widgets + 1] = tw2 end
+                    end
+                else
+                    -- Even one glyph + ellipsis overflows: hard-cut prefix.
+                    local l1, tw2 = maxPrefix(text)
+                    if tw2 then widgets[#widgets + 1] = tw2 end
+                end
+            end
+
+            if #widgets > 0 then
+                quote_widgets = widgets
+                for _, tw in ipairs(widgets) do
+                    quote_row_h = quote_row_h + tw.forced_height
                 end
             end
             -- The width probes above ran make_text with UNTRUNCATED prefixes,

@@ -59,7 +59,7 @@
 
 ## 安装
 
-1. 把整个 `calendar_lockscreen.koplugin/` 文件夹（内部含 7 个 `.lua` 文件：`main.lua`、`_meta.lua`、`calendarscreen.lua`、`calfont.lua`、`cal_lunar.lua`、`calquote.lua`、`calcorpus.lua`，以及 3 个语料文件：`poems.txt`、`quotes.txt`、`lines.txt`）复制到 KOReader 的插件目录。常见位置（放任意一个即可，KOReader 会扫描）：
+1. 把整个 `calendar_lockscreen.koplugin/` 文件夹（内部含 7 个 `.lua` 文件：`main.lua`、`_meta.lua`、`calendarscreen.lua`、`calfont.lua`、`cal_lunar.lua`、`calquote.lua`、`calcorpus.lua`，以及 4 个语料文件：`poems.txt`、`quotes.txt`、`lines.txt`、`lyrics.txt`）复制到 KOReader 的插件目录。常见位置（放任意一个即可，KOReader 会扫描）：
    - **Kobo**：`/mnt/onboard/.adds/koreader/plugins/`
    - **Kindle**：`/mnt/us/koreader/plugins/`（KOReader 装在 `/mnt/us/koreader` 时）
    - **Android（KOReader App）**：`/sdcard/koreader/plugins/`（数据目录）或 App 私有目录 `Android/data/org.koreader.launcher/files/koreader/plugins/`
@@ -76,7 +76,7 @@
 
 按以下顺序核对：
 
-1. **目录形态**：设备上确认是 `calendar_lockscreen.koplugin/` 文件夹，内部直接有 `main.lua / _meta.lua / calendarscreen.lua / calfont.lua / cal_lunar.lua / calquote.lua / calcorpus.lua` 七个 `.lua` 文件，以及 `poems.txt / quotes.txt / lines.txt` 三个语料文件（无 `.koplugin` 后缀缺失、无多层嵌套）。
+1. **目录形态**：设备上确认是 `calendar_lockscreen.koplugin/` 文件夹，内部直接有 `main.lua / _meta.lua / calendarscreen.lua / calfont.lua / cal_lunar.lua / calquote.lua / calcorpus.lua` 七个 `.lua` 文件，以及 `poems.txt / quotes.txt / lines.txt / lyrics.txt` 四个语料文件（无 `.koplugin` 后缀缺失、无多层嵌套）。
 2. **是否真重启**：回主界面不等于重启，必须彻底退出 KOReader 再打开。
 3. **看 KOReader 日志**：启动后查看 `koreader.log`（在 KOReader 安装/数据目录），搜索 `calendar_lockscreen`。
    - 出现 `Could not load plugin` 或 lua 报错 → 插件代码有问题，把报错贴出。
@@ -88,16 +88,25 @@
 - 开启「启用日历锁屏」后，正常合盖/息屏即显示本日历锁屏。
 - 唤醒：轻触屏幕或按任意键（与原屏保一致）。
 - 菜单项：`启用日历锁屏` / `当前字体：xxx`（只读提示）/ `字体`（选择器）/ `额外加粗` /
-  `预览锁屏样式` / `金句类型` / `换一条金句`。菜单会自动归位到「工具」标签页，不会带「新：」前缀。
+  `预览锁屏样式` / `金句类型` / `金句字号` / `换一条金句`。菜单会自动归位到「工具」标签页，不会带「新：」前缀。
 
 ## 每日金句（锁屏底部，本地语料库）
 
 金句取自插件内置的、**人工核实过的真实语料库**（`poems.txt` 诗词、`quotes.txt` 名言警句、
-`lines.txt` 著名台词），**完全本地、零网络、零 Key、断网可用**
-语料库当前规模：诗词 500 条、名言警句 500 条、著名台词 500 条，均可自行增删（见下）。
+`lines.txt` 著名台词、`lyrics.txt` 歌词），**完全本地、零网络、零 Key、断网可用**。
+语料库当前规模：诗词 500 条、名言警句 500 条、著名台词 500 条、歌词 20+ 条，均可自行增删（见下）。
 
-**金句类型**：菜单 → `金句类型`，可选 `诗词` / `名言警句` / `著名台词` / `随机`（默认）。
+**金句类型**：菜单 → `金句类型`，可选 `诗词` / `名言警句` / `著名台词` / `歌词` / `随机`（默认）。
 切换类型后，当天的金句立即换成对应类型（同样的日期 + 类型永远显示同一句）。
+- `随机` 在「诗词 + 名言警句」里挑（**不含歌词**，避免歌词的双行格式与其他单行类型混排）。
+- `歌词` 支持两种写法：纯中文歌词单行显示；或 `外文 | 中文` 写成两行（第一行外文、第二行中文）。
+  详见 `lyrics.txt` 顶部的格式说明，改文件重启 KOReader 即生效，不用动代码。
+
+**金句字号**：菜单 → `金句字号`，可选 `6–14`（间隔 1，默认 `12`）。只改锁屏底部金句的字体大小，
+不影响日历其他文字。
+
+**显示规则**：金句最多显示 **两行**。单行类型（诗词 / 名言警句 / 著名台词 / 随机）过长时自动折成两行，
+第二行仍放不下则在末尾加省略号「…」。`歌词` 的两行（外文 / 中文）各自独立截断，互不影响。
 
 **换一条金句**：菜单 → `换一条金句`，从语料库里换一句今天的内容（无需联网）；
 如果锁屏正在预览中，会实时重绘显示新句。
@@ -123,16 +132,18 @@
   以消除残影（选择 `ScreenSaverWidget:init` 作为钩子点，是因为它恰好运行在
   `Screensaver:show()` 切完竖屏之后、`UIManager:show()` 画日历之前）；并注册菜单、字体选择器与预览。
 - `calendarscreen.lua`：锁屏画面 widget，按屏幕比例自适应字号，含状态栏 / 年月 / 号数 / 星期 / 农历 / 细线，
-  以及底部的每日金句（所有类型均单行截断显示）。`refreshQuote()` 用于「换一条」时即时重绘可见锁屏。
+  以及底部的每日金句（最多两行：单行类型过长则折行、第二行末尾加省略号；`歌词` 两行各自独立截断）。`refreshQuote()` 用于「换一条」时即时重绘可见锁屏。
 - `calfont.lua`：字体发现与选择。扫描 KOReader 字体目录、按字重/中文覆盖度排名、
   读写"用户选定字体"设置、逐级回退到自带字体。
 - `cal_lunar.lua`：农历、干支、节气算法（纯 Lua，离线，1900–2100）。
 - `calcorpus.lua`：本地语料库加载器。用 `debug.getinfo` 定位自身目录，读取
-  `poems.txt` / `quotes.txt` / `lines.txt`；按 djb2 哈希做「日期确定性」选句
+  `poems.txt` / `quotes.txt` / `lines.txt` / `lyrics.txt`；按 djb2 哈希做「日期确定性」选句
   （同日期永远选同一句）；`lines.txt` 解析为「台词 + 出处」结构（出处保留在数据中但不显示在锁屏）；
+  `lyrics.txt` 支持两种写法——纯中文单行，或 `外文 | 中文` 两行（解析为 foreign / cn 两段，渲染时外文在上、中文在下）；
   文件缺失/为空时回退内置保底。
 - `calquote.lua`：每日金句逻辑。从 `calcorpus` 本地选句（不再联网、不用 AI），按
   「日期 + 类型」缓存，`换一条金句` 通过偏移量走到语料库下一句并实时重绘可见锁屏；
-  自动剥离句子首尾引号。
-- `poems.txt` / `quotes.txt` / `lines.txt`：用户可编辑的语料文件（格式见上「每日金句」）。
+  自动剥离句子首尾引号；金句类型含 `诗词 / 名言警句 / 著名台词 / 歌词 / 随机`
+  （`随机` 只在诗词 + 名言警句里挑，不含歌词）；`金句字号` 读写 `6–14` 的字号设置（默认 12）。
+- `poems.txt` / `quotes.txt` / `lines.txt` / `lyrics.txt`：用户可编辑的语料文件（格式见上「每日金句」）。
 - `_meta.lua`：插件元信息。

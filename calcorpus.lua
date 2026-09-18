@@ -7,11 +7,14 @@
 -- Every entry is a real, well-known line, so the lockscreen can never show a
 -- made-up one.  No network, no key, no latency.
 --
--- The corpus lives in THREE PLAIN TEXT FILES next to this module so the USER
+-- The corpus lives in FOUR PLAIN TEXT FILES next to this module so the USER
 -- can replace the content without writing any Lua:
 --   * poems.txt   -- 诗词 (complete couplets, 一联)
 --   * quotes.txt  -- 名言警句 (real quotations)
---   * lines.txt   -- 著名台词 (famous film / TV / theatre lines; TWO lines)
+--   * lines.txt   -- 著名台词 (famous film / TV / theatre lines; single line
+--                    shown on the lockscreen -- its " | 出处" note is kept for
+--                    yourself only and is NOT displayed)
+--   * lyrics.txt  -- 歌词 (song lyrics)
 -- Edit those files and restart KOReader -- done.  Per-line format:
 --   * one entry per line;
 --   * blank lines and lines starting with '#' are ignored (use '#' for notes);
@@ -21,14 +24,18 @@
 --       - for lines.txt it is the SOURCE shown on the FIRST line (e.g. 阿甘正传),
 --         and the line itself is the quote shown on the SECOND line -- the
 --         著名台词 type renders as two lines (source above, line below).
+--   * lyrics.txt uses a DIFFERENT convention (both parts are displayed):
+--       - "中文歌词" alone            -> shown on ONE line (Chinese only);
+--       - "外文歌词 | 中文歌词"       -> TWO lines: foreign ABOVE, Chinese BELOW,
+--         each clamped to the screen width on its own.
 -- If a file is missing or empty, a tiny built-in fallback keeps the plugin
 -- from showing nothing.
 local M = {}
 
 local logger = require("logger")
 
--- Directory of this very file, so we find poems.txt / quotes.txt / lines.txt
--- no matter where the plugin is installed (the .koplugin folder is a dir).
+-- Directory of this very file, so we find poems.txt / quotes.txt / lines.txt /
+-- lyrics.txt no matter where the plugin is installed (the .koplugin folder is a dir).
 local function selfDir()
     local src = debug.getinfo(1, "S").source
     src = src:gsub("^@", "")                 -- strip the leading '@'
@@ -96,6 +103,44 @@ local function loadLinesWithSource(name)
     return out
 end
 
+-- Read lyrics.txt.  Two formats (both parts are DISPLAYED):
+--   * "中文歌词" alone        -> { text = line }         (shown on ONE line)
+--   * "外文 | 中文"           -> { foreign = a, cn = b }  (two lines: a over b)
+local function loadLyrics(name)
+    local path = selfDir() .. name
+    local f, err = io.open(path, "r")
+    if not f then
+        logger.warn("calendar_lockscreen: lyrics.txt not found, using fallback:",
+                    path, err or "")
+        return nil
+    end
+    local out = {}
+    for raw in f:lines() do
+        local line = raw:gsub("^%s+", ""):gsub("%s+$", "")
+        if line ~= "" and line:sub(1, 1) ~= "#" then
+            local foreign, cn = line:match("^([^|]*)%s*|%s*(.*)$")
+            if foreign then
+                foreign = foreign:gsub("^%s+", ""):gsub("%s+$", "")
+                cn = cn:gsub("^%s+", ""):gsub("%s+$", "")
+                if foreign ~= "" and cn ~= "" then
+                    out[#out + 1] = { foreign = foreign, cn = cn }
+                end
+            else
+                line = line:gsub("^%s+", ""):gsub("%s+$", "")
+                if line ~= "" then
+                    out[#out + 1] = { text = line }
+                end
+            end
+        end
+    end
+    f:close()
+    if #out == 0 then
+        logger.warn("calendar_lockscreen: lyrics.txt is empty, using fallback:", path)
+        return nil
+    end
+    return out
+end
+
 -- Tiny built-in fallback so the plugin never shows nothing if the TXT files
 -- are missing or empty.  Replace content via the TXT files, not here.
 local FALLBACK_POEMS = {
@@ -112,10 +157,16 @@ local FALLBACK_LINES = {
     { text = "生活就像一盒巧克力，你永远不知道下一颗是什么味道。", source = "阿甘正传" },
     { text = "要么忙着活，要么忙着死。", source = "肖申克的救赎" },
 }
+local FALLBACK_LYRICS = {
+    { text = "后来，我总算学会了如何去爱。" },
+    { foreign = "Yesterday Once More", cn = "昨日重现" },
+    { foreign = "Let It Be", cn = "随它去" },
+}
 
 M.poems  = loadLines("poems.txt")  or FALLBACK_POEMS
 M.quotes = loadLines("quotes.txt") or FALLBACK_QUOTES
 M.lines  = loadLinesWithSource("lines.txt") or FALLBACK_LINES
+M.lyrics = loadLyrics("lyrics.txt") or FALLBACK_LYRICS
 
 ---------------------------------------------------- deterministic selection
 -- djb2 string hash, kept inside 32 bits.  Stable across runs/devices, so the
@@ -150,9 +201,19 @@ function M.pick(kind, date, offset)
             return e.text
         end
         return nil
+    elseif kind == "歌词" then
+        local e = pickFrom(M.lyrics, date, offset)
+        if type(e) == "table" then
+            if e.foreign and e.cn then
+                -- Two lines on screen: FOREIGN on top, CHINESE below.
+                return e.foreign .. "\n" .. e.cn
+            end
+            return e.text            -- pure-Chinese single line
+        end
+        return nil
     end
-    -- 随机: a single pool of poems + quotes (lines are shown two-line, so they
-    -- are NOT mixed into the single-line 随机 pool).
+    -- 随机: a single-line pool of poems + quotes.  Lines (two-line) and lyrics
+    -- (may be two-line) are NOT mixed in, so 随机 stays single-line.
     local pool = {}
     for _, v in ipairs(M.poems) do pool[#pool + 1] = v end
     for _, v in ipairs(M.quotes) do pool[#pool + 1] = v end
@@ -164,6 +225,7 @@ function M.count(kind)
     if kind == "诗词" then return #M.poems end
     if kind == "名言警句" then return #M.quotes end
     if kind == "著名台词" then return #M.lines end
+    if kind == "歌词" then return #M.lyrics end
     return #M.poems + #M.quotes
 end
 

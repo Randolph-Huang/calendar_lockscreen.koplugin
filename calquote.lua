@@ -5,7 +5,8 @@
 --     (calcorpus.lua) -- no AI, no network, no hallucination;
 --   * selection is DETERMINISTIC per calendar day: the same day always shows
 --     the same line for a given type, so the lockscreen never changes mid-day;
---   * the user picks a quote type in the menu (诗词/名言警句/随机);
+--   * the user picks a quote type in the menu (诗词/名言警句/著名台词/歌词/随机);
+--   * the user picks the quote font size (6-14 mock px, default 12);
 --   * "换一条" advances an offset so the user can walk to another line today;
 --   * the lockscreen asks M.dailyQuote() for the text when it builds.
 --
@@ -19,11 +20,27 @@ local corpus = require("calcorpus")
 local KEY_QUOTE = "calendar_lockscreen_quote"
 local KEY_KIND = "calendar_lockscreen_ai"        -- selected quote type (legacy key name kept)
 local KEY_OFFSET = "calendar_lockscreen_quote_offset"
+local KEY_SIZE = "calendar_lockscreen_quote_size"  -- quote font size (mock px, 6-14)
 
 local M = {}
 
 -- Quote types shown in the menu.  KIND_POOL drives the 随机 pick.
-M.KINDS = { "诗词", "名言警句", "著名台词", "随机" }
+M.KINDS = { "诗词", "名言警句", "著名台词", "歌词", "随机" }
+
+-- Quote font size, in mock px.  Default 12, clamped to 6-14.  The calendar's
+-- other text (date, weekday, lunar) is NOT affected by this setting.
+function M.quoteSize()
+    local n = G_reader_settings:readSetting(KEY_SIZE)
+    if type(n) == "number" and n >= 6 and n <= 14 then return n end
+    return 12
+end
+
+function M.setQuoteSize(n)
+    if type(n) == "number" then
+        n = math.max(6, math.min(14, math.floor(n + 0.5)))
+        G_reader_settings:saveSetting(KEY_SIZE, n)
+    end
+end
 
 -- The lockscreen widget currently on screen, if any.  Set by calendarscreen.lua
 -- in its init() and cleared on close, so a "换一条" can repaint the visible

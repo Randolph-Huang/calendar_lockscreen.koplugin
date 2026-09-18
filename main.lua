@@ -268,6 +268,22 @@ function CalendarLockscreen:addToMainMenu(menu_items)
                 help_text = _("锁屏底部每日金句的内容类型。切换类型后，当天的金句会立即换成对应类型。"),
             },
             {
+                text = _("金句字号"),
+                sub_item_table_func = function()
+                    local sizes = { 6, 7, 8, 9, 10, 11, 12, 13, 14 }
+                    local items = {}
+                    for i, sz in ipairs(sizes) do
+                        items[#items + 1] = {
+                            text = sz == 12 and _("12（默认）") or tostring(sz),
+                            checked_func = function() return calquote.quoteSize() == sz end,
+                            callback = function() calquote.setQuoteSize(sz) end,
+                        }
+                    end
+                    return items
+                end,
+                help_text = _("锁屏底部每日金句的字体大小（6–14）。仅影响金句，不影响日历其他文字。"),
+            },
+            {
                 -- Local "换一条": pick the next line for today (no network).
                 text = _("换一条金句"),
                 keep_menu_open = true,

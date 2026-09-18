@@ -1,0 +1,34 @@
+# 歌词语料（lyrics.txt）
+#
+# 两种格式，编辑后重启 KOReader 即生效：
+#   1) 纯中文歌词：直接写一行，锁屏单行显示
+#   2) 外文 | 中文：锁屏分两行，外文在上、中文在下，各行超宽各自截断
+#
+# 也可以加 " | 出处" 备注（仅你自己看，不会显示），例如：
+#   Yesterday Once More | 昨日重现 | Carpenter
+
+# —— 纯中文歌词（单行）——
+后来，我总算学会了如何去爱。
+没有什么能够阻挡，你对自由的向往。
+我和我最后的倔强，握紧双手绝对不放。
+浪奔浪流，万里涛涛江水永不休。
+夜空中最亮的星，能否听清，那仰望的人心底的孤独和叹息。
+平凡才是唯一的答案。
+故事的小黄花，从出生那年就飘着。
+我怀念的是无话不说，我怀念的是一起做梦。
+青春如同奔流的江河，一去不回来不及道别。
+岁月长，衣衫薄。
+
+# —— 中外对照（两行：外文在上，中文在下）——
+Yesterday Once More | 昨日重现
+Let It Be | 随它去
+My Heart Will Go On | 我心永恒
+Right Here Waiting | 此情可待
+Take Me to Your Heart | 吻别
+Because You Lived | 因你而生
+Lemon Tree | 柠檬树
+Hey Jude | 嘿，朱迪
+Scarborough Fair | 斯卡布罗集市
+Country Roads | 乡间小路
+Imagine | 想象
+Yesterday | 昨天
