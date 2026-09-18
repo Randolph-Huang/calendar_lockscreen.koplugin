@@ -35,17 +35,6 @@
    - 主界面点右上角「菜单 / ≡」，在列表中找到 **「日历锁屏」**（通常在「插件」分组下）。
    - 阅读界面同理：阅读时点头像 / 菜单 → 找到「日历锁屏」。
 
-## 如果菜单里找不到（排查）
-
-按以下顺序核对：
-
-1. **目录形态**：设备上确认是 `calendar_lockscreen.koplugin/` 文件夹，内部直接有 `main.lua / _meta.lua / calendarscreen.lua / calfont.lua / cal_lunar.lua / calquote.lua / calcorpus.lua` 七个 `.lua` 文件，以及 `poems.txt / quotes.txt / lines.txt / lyrics.txt` 四个语料文件（无 `.koplugin` 后缀缺失、无多层嵌套）。
-2. **是否真重启**：回主界面不等于重启，必须彻底退出 KOReader 再打开。
-3. **看 KOReader 日志**：启动后查看 `koreader.log`（在 KOReader 安装/数据目录），搜索 `calendar_lockscreen`。
-   - 出现 `Could not load plugin` 或 lua 报错 → 插件代码有问题，把报错贴出。
-   - 完全搜不到 `calendar_lockscreen` → 插件目录没被扫描到（路径放错）。
-4. 本插件已在 `main.lua` 的 `init()` 中调用 `self.ui.menu:registerToMainMenu(self)` 注册菜单；若仍不显示，几乎必然是上述 1/2/3 的路径或重启问题，而非代码问题。
-
 ## 使用
 
 - 开启「启用日历锁屏」后，正常合盖/息屏即显示本日历锁屏。
